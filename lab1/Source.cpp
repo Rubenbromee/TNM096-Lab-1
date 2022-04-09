@@ -218,8 +218,8 @@ struct Board_state {
 		for (int i = 1; i < 10; i++) {
 			// If the values are different from the goal state
 
-			// If the values on a tile are different
-			if (board.find(i)->second != goal_board.find(i)->second) {
+			// If the values on a tile are different, empty tile cannot be misplaced
+			if (board.find(i)->second != goal_board.find(i)->second && board.find(i)->second != 0) {
 				int value_on_board = board.find(i)->second;
 				int position_on_board = board.find(i)->first;
 
@@ -279,7 +279,7 @@ struct Board_state {
 				}
 
 				// Sum for all values
-				manhattan_distance += std::abs(x_board - x_goal) + std::abs(y_board - y_goal);
+				manhattan_distance += abs(x_board - x_goal) + abs(y_board - y_goal);
 			}
 		}
 		return manhattan_distance;
@@ -321,7 +321,7 @@ int main() {
 	open_list.push(start);
 
 	// While the goal state is not in the first position of the open list, continue
-	while (open_list.top()->h2() != 0) {
+	while (open_list.top()->board != open_list.top()->goal_board) {
 		std::vector<Board_state*> child_states = open_list.top()->check_available_moves();
 
 		std::for_each(child_states.begin(), child_states.end(), [&](Board_state* child) {
@@ -340,7 +340,7 @@ int main() {
 		open_list.pop();
 		closed_list.insert({ board_to_string(tmp), tmp });
 
-		std::cout << open_list.top()->h2() << " ";
+		// std::cout << open_list.top()->h1() << " ";
 	}
 
 	std::cout << "Success!" << "\n";
