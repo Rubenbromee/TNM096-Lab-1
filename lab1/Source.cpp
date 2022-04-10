@@ -7,17 +7,6 @@
 #include <math.h> 
 #include <string> 
 
-// Create tree as you go ?
-// Open list contains all unexpanded nodes
-// Closed list contains all expanded nodes
-// Lists are probably queues
-// Move operations are swaps with the zero value
-// Use queue as much as possible
-// Board is queue when flattened
-// Given initial state and goal state, find solution
-// Optimitze, priority queues for open list? And closed list?
-// Make closed list to map
-
 struct Board_state {
 	std::map<int, int> board;
 
@@ -33,10 +22,10 @@ struct Board_state {
 		{9, 0}
 	};
 
-	int depth = 0; // Total cost to travel to node
-	std::vector<std::pair<int, int>> moves;
+	int depth = 0;
+	std::vector<std::pair<int, int>> moves; // To store solution path
 
-	// Must be done manually for initial state :(
+	// Initial state of board
 	Board_state() {
 		board.insert({ 1, 6 });
 		board.insert({ 2, 4 });
@@ -87,7 +76,7 @@ struct Board_state {
 		Board_state* swap_right = new Board_state(*this);
 		Board_state* swap_down = new Board_state(*this);
 
-		// Best method I could figure out, pretty readable at least
+		// Define moves as a swap with the empty tile, store node path for solution printing
 		switch (position_of_zero) {
 		case 1:
 			std::swap(swap_right->board.at(1), swap_right->board.at(2));
@@ -216,9 +205,7 @@ struct Board_state {
 		int manhattan_distance = 0;
 		// For each tile on the board
 		for (int i = 1; i < 10; i++) {
-			// If the values are different from the goal state
-
-			// If the values on a tile are different, empty tile cannot be misplaced
+			// Are the values on a tile are different from the goal state? Empty tile cannot be misplaced
 			if (board.find(i)->second != goal_board.find(i)->second && board.find(i)->second != 0) {
 				int value_on_board = board.find(i)->second;
 				int position_on_board = board.find(i)->first;
@@ -285,6 +272,20 @@ struct Board_state {
 		return manhattan_distance;
 	}
 
+	// Testing other heuristics
+
+	int h3() {
+		return (h1() + h2()) / 2;
+	}
+
+	int h4() {
+		return 2 * h1();
+	}
+
+	int h5() {
+		return std::max(h1(), h2());
+	}
+
 	// First total cost function, using nr of misplaced tiles as heuristic
 	int f1() {
 		return h1() + depth;
@@ -294,15 +295,30 @@ struct Board_state {
 	int f2() {
 		return h2() + depth;
 	}
+
+
+	// Total cost functions for other heuristics
+	int f3() {
+		return h3() + depth;
+	}
+
+	int f4() {
+		return h4() + depth;
+	}
+
+	int f5() {
+		return h5() + depth;
+	}
 };
 
 // Because top acesses the highest element, the sorting needs to be reversed
 struct compare_boards {
 	bool operator() (Board_state* a, Board_state* b) {
-		return a->f2() > b->f2();
+		return a->f5() > b->f5();
 	}
 };
 
+// Used for storing and searching for boards in the closed list
 std::string board_to_string(Board_state* b) {
 	std::string s = "";
 	for (int i = 1; i < 10; i++) {
@@ -324,9 +340,11 @@ int main() {
 	while (open_list.top()->board != open_list.top()->goal_board) {
 		std::vector<Board_state*> child_states = open_list.top()->check_available_moves();
 
+		// Expand
 		std::for_each(child_states.begin(), child_states.end(), [&](Board_state* child) {
 			bool add_child = true;
 
+			// Duplicate check
 			if (closed_list.count(board_to_string(child)) > 0) {
 				add_child = false;
 			}
@@ -334,17 +352,19 @@ int main() {
 			if (add_child) {
 				open_list.push(child);
 			}
-			});
+		});
 
+		// Store expanded nodes
 		Board_state* tmp = open_list.top();
 		open_list.pop();
 		closed_list.insert({ board_to_string(tmp), tmp });
 
-		// std::cout << open_list.top()->h1() << " ";
+		std::cout << open_list.top()->h5() << " ";
 	}
 
-	std::cout << "Success!" << "\n";
+	std::cout << "\n" << "Success!" << "\n";
 
+	// Print list of moves for solution
 	for (int i = 0; i < open_list.top()->moves.size(); i++) {
 
 		std::string move_direction;
